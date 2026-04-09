@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and release .dmg
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build Release (unsigned)
+        run: |
+          xcodebuild \
+            -project SnipTease.xcodeproj \
+            -scheme SnipTease \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Locate built .app
+        id: locate
+        run: |
+          APP_PATH="build/Build/Products/Release/SnipTease.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "SnipTease.app not found at $APP_PATH"
+            find build -name "SnipTease.app" -type d
+            exit 1
+          fi
+          echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          echo "Built: $APP_PATH"
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Package .dmg
+        id: dmg
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          DMG_NAME="SnipTease-${VERSION}.dmg"
+          STAGING="$(mktemp -d)/dmg-staging"
+          mkdir -p "$STAGING"
+          cp -R "${{ steps.locate.outputs.app_path }}" "$STAGING/"
+
+          create-dmg \
+            --volname "SnipTease ${VERSION}" \
+            --window-size 540 380 \
+            --icon-size 100 \
+            --icon "SnipTease.app" 140 190 \
+            --app-drop-link 400 190 \
+            --no-internet-enable \
+            "$DMG_NAME" \
+            "$STAGING" \
+            || ls -lah "$DMG_NAME"
+
+          if [ ! -f "$DMG_NAME" ]; then
+            echo "DMG not produced"
+            exit 1
+          fi
+
+          echo "dmg_path=$DMG_NAME" >> "$GITHUB_OUTPUT"
+          echo "Produced: $DMG_NAME ($(du -h "$DMG_NAME" | cut -f1))"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.dmg.outputs.dmg_path }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          body: |
+            ## SnipTease ${{ github.ref_name }}
+
+            Native macOS menu bar utility for framing screenshots for social media.
+
+            ### Install
+
+            1. Download the `.dmg` below.
+            2. Drag `SnipTease.app` to `/Applications`.
+            3. This build is **unsigned** — on first launch, right-click the app and choose **Open**, or run:
+               ```sh
+               xattr -dr com.apple.quarantine /Applications/SnipTease.app
+               ```
+            4. Grant Screen Recording and Accessibility permissions when asked.

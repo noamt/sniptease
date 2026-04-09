@@ -1,0 +1,55 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Xcode — user-specific
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+*.xcworkspace/xcuserdata/
+
+# Xcode — build artifacts
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Xcode — derived data (legacy/global paths, just in case)
+~/Library/Developer/Xcode/DerivedData/
+
+# Swift Package Manager
+.build/
+Package.resolved
+.swiftpm/
+
+# CocoaPods (not used, but future-proof)
+Pods/
+
+# Carthage (not used, but future-proof)
+Carthage/Build/
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Secrets / local env
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Release artifacts
+*.dmg
+*.app
+!SnipTease.xcodeproj/**/*.app
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
