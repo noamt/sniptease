@@ -227,6 +227,28 @@
       height: auto;
     }
 
+    /* ── Presets ──────────────────────────────────── */
+
+    .presets-layout {
+      display: flex;
+      gap: 40px;
+      align-items: start;
+      margin-top: 32px;
+    }
+
+    .presets-layout .presets-table {
+      flex: 1;
+      min-width: 0;
+      margin-top: 0;
+    }
+
+    .presets-menu-img {
+      flex: 0 0 220px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
     /* ── Presets table ────────────────────────────── */
 
     .presets-table {
@@ -395,6 +417,16 @@
         justify-content: center;
       }
 
+      .presets-layout {
+        flex-direction: column;
+      }
+
+      .presets-menu-img {
+        flex: none;
+        width: 200px;
+        align-self: center;
+      }
+
       .mcp-tools {
         flex-direction: column;
       }
@@ -455,32 +487,35 @@
     <div class="container">
       <h2>Built-in presets</h2>
       <p>Every major platform covered.</p>
-      <table class="presets-table">
-        <thead>
-          <tr>
-            <th>Preset</th>
-            <th>Aspect</th>
-            <th>Export width</th>
-            <th>Safe margin</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="platform-group"><td colspan="4">OG / Meta</td></tr>
-          <tr><td>OG Image</td><td class="mono">1200:630</td><td class="mono">1200 px</td><td class="mono">6%</td></tr>
-          <tr><td>OG Image @2x</td><td class="mono">1200:630</td><td class="mono">2400 px</td><td class="mono">6%</td></tr>
-          <tr><td>X / Twitter Card</td><td class="mono">2:1</td><td class="mono">1600 px</td><td class="mono">6%</td></tr>
-          <tr class="platform-group"><td colspan="4">LinkedIn</td></tr>
-          <tr><td>LinkedIn Feed</td><td class="mono">1:1</td><td class="mono">1200 px</td><td class="mono">8%</td></tr>
-          <tr><td>LinkedIn Landscape</td><td class="mono">1200:627</td><td class="mono">1200 px</td><td class="mono">6%</td></tr>
-          <tr class="platform-group"><td colspan="4">X (Twitter)</td></tr>
-          <tr><td>X Square</td><td class="mono">1:1</td><td class="mono">1080 px</td><td class="mono">7%</td></tr>
-          <tr><td>X Landscape</td><td class="mono">16:9</td><td class="mono">1200 px</td><td class="mono">6%</td></tr>
-          <tr class="platform-group"><td colspan="4">Instagram</td></tr>
-          <tr><td>Instagram Square</td><td class="mono">1:1</td><td class="mono">1080 px</td><td class="mono">8%</td></tr>
-          <tr><td>Instagram Portrait</td><td class="mono">4:5</td><td class="mono">1080 px</td><td class="mono">8%</td></tr>
-          <tr><td>Instagram Story</td><td class="mono">9:16</td><td class="mono">1080 px</td><td class="mono">10%</td></tr>
-        </tbody>
-      </table>
+      <div class="presets-layout">
+        <table class="presets-table">
+          <thead>
+            <tr>
+              <th>Preset</th>
+              <th>Aspect</th>
+              <th>Export width</th>
+              <th>Safe margin</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="platform-group"><td colspan="4">OG / Meta</td></tr>
+            <tr><td>OG Image</td><td class="mono">1200:630</td><td class="mono">1200 px</td><td class="mono">6%</td></tr>
+            <tr><td>OG Image @2x</td><td class="mono">1200:630</td><td class="mono">2400 px</td><td class="mono">6%</td></tr>
+            <tr><td>X / Twitter Card</td><td class="mono">2:1</td><td class="mono">1600 px</td><td class="mono">6%</td></tr>
+            <tr class="platform-group"><td colspan="4">LinkedIn</td></tr>
+            <tr><td>LinkedIn Feed</td><td class="mono">1:1</td><td class="mono">1200 px</td><td class="mono">8%</td></tr>
+            <tr><td>LinkedIn Landscape</td><td class="mono">1200:627</td><td class="mono">1200 px</td><td class="mono">6%</td></tr>
+            <tr class="platform-group"><td colspan="4">X (Twitter)</td></tr>
+            <tr><td>X Square</td><td class="mono">1:1</td><td class="mono">1080 px</td><td class="mono">7%</td></tr>
+            <tr><td>X Landscape</td><td class="mono">16:9</td><td class="mono">1200 px</td><td class="mono">6%</td></tr>
+            <tr class="platform-group"><td colspan="4">Instagram</td></tr>
+            <tr><td>Instagram Square</td><td class="mono">1:1</td><td class="mono">1080 px</td><td class="mono">8%</td></tr>
+            <tr><td>Instagram Portrait</td><td class="mono">4:5</td><td class="mono">1080 px</td><td class="mono">8%</td></tr>
+            <tr><td>Instagram Story</td><td class="mono">9:16</td><td class="mono">1080 px</td><td class="mono">10%</td></tr>
+          </tbody>
+        </table>
+        <img src="menu.png" alt="SnipTease menu bar dropdown showing preset list" class="presets-menu-img">
+      </div>
     </div>
   </section>
 
