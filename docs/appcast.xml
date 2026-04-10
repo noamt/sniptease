@@ -5,5 +5,13 @@
     <link>https://noamt.github.io/sniptease/appcast.xml</link>
     <description>SnipTease updates</description>
     <language>en</language>
+      <item>
+      <title>Version 1.1.0</title>
+      <pubDate>Fri, 10 Apr 2026 15:32:29 +0000</pubDate>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/noamt/sniptease/releases/download/v1.1.0/SnipTease-1.1.0.dmg" type="application/octet-stream" sparkle:edSignature="YYbLSrN4mU1Sl5LrGmre769D03ziYfwawPA8p38DkybhvislB0x5ssCvUHztLmjOPBjVifiVKgCDt5BvltNLDA==" length="1454979" />
+    </item>
   </channel>
 </rss>
