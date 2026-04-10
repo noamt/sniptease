@@ -230,20 +230,31 @@ struct OverlayContentView: View {
     private func centerCrosshair(_ rect: CGRect) -> some View {
         let cx = rect.midX
         let cy = rect.midY
-        let arm: CGFloat = 10
+        let gap: CGFloat = 6   // breathing room around the center point
+
+        let crossPath = Path { path in
+            // horizontal
+            path.move(to: CGPoint(x: rect.minX, y: cy))
+            path.addLine(to: CGPoint(x: cx - gap, y: cy))
+            path.move(to: CGPoint(x: cx + gap, y: cy))
+            path.addLine(to: CGPoint(x: rect.maxX, y: cy))
+            // vertical
+            path.move(to: CGPoint(x: cx, y: rect.minY))
+            path.addLine(to: CGPoint(x: cx, y: cy - gap))
+            path.move(to: CGPoint(x: cx, y: cy + gap))
+            path.addLine(to: CGPoint(x: cx, y: rect.maxY))
+        }
+        let dash = StrokeStyle(lineWidth: 0.7, dash: [4, 4])
 
         return ZStack {
-            Path { path in
-                path.move(to: CGPoint(x: cx - arm, y: cy))
-                path.addLine(to: CGPoint(x: cx + arm, y: cy))
-                path.move(to: CGPoint(x: cx, y: cy - arm))
-                path.addLine(to: CGPoint(x: cx, y: cy + arm))
-            }
-            .stroke(Color.white.opacity(0.25), lineWidth: 0.8)
+            // dark shadow for contrast on light backgrounds
+            crossPath.stroke(Color.black.opacity(0.2), style: dash)
+            // white line for contrast on dark backgrounds
+            crossPath.stroke(Color.white.opacity(0.3), style: dash)
 
             Circle()
-                .fill(Color.white.opacity(0.15))
-                .frame(width: 4, height: 4)
+                .fill(Color.white.opacity(0.35))
+                .frame(width: 5, height: 5)
                 .position(x: cx, y: cy)
         }
     }
@@ -251,7 +262,7 @@ struct OverlayContentView: View {
     // MARK: - Rule of Thirds
 
     private func ruleOfThirds(_ rect: CGRect) -> some View {
-        Path { path in
+        let gridPath = Path { path in
             for i in 1...2 {
                 let x = rect.minX + rect.width / 3 * CGFloat(i)
                 path.move(to: CGPoint(x: x, y: rect.minY))
@@ -263,7 +274,11 @@ struct OverlayContentView: View {
                 path.addLine(to: CGPoint(x: rect.maxX, y: y))
             }
         }
-        .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+
+        return ZStack {
+            gridPath.stroke(Color.black.opacity(0.1), lineWidth: 0.5)
+            gridPath.stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+        }
     }
 
     // MARK: - Edge Midpoint Marks
