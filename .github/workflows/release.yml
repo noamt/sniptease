@@ -213,7 +213,7 @@ jobs:
             exit 1
           fi
 
-          SIGNATURE=$("$SIGN_TOOL" "$DMG_PATH" --ed-key-file <(echo "$SPARKLE_PRIVATE_KEY") 2>&1)
+          SIGNATURE=$(echo "$SPARKLE_PRIVATE_KEY" | "$SIGN_TOOL" "$DMG_PATH" --ed-key-file - 2>&1)
           echo "Sparkle signature: $SIGNATURE"
 
           # Parse out edSignature and length
@@ -227,6 +227,8 @@ jobs:
       - name: Update appcast.xml
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          APP_PATH="${{ steps.locate.outputs.app_path }}"
+          BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP_PATH/Contents/Info.plist")
           DMG_NAME="${{ steps.dmg.outputs.dmg_path }}"
           DMG_URL="https://github.com/noamt/sniptease/releases/download/${GITHUB_REF_NAME}/${DMG_NAME}"
           ED_SIGNATURE="${{ steps.sparkle_sign.outputs.ed_signature }}"
@@ -236,7 +238,7 @@ jobs:
           ITEM="    <item>
               <title>Version ${VERSION}</title>
               <pubDate>${PUB_DATE}</pubDate>
-              <sparkle:version>${VERSION}</sparkle:version>
+              <sparkle:version>${BUILD_NUMBER}</sparkle:version>
               <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
               <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
               <enclosure url=\"${DMG_URL}\" type=\"application/octet-stream\" sparkle:edSignature=\"${ED_SIGNATURE}\" length=\"${LENGTH}\" />
