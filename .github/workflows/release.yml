@@ -79,9 +79,54 @@ jobs:
             exit 1
           fi
           echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Re-sign embedded frameworks
+        run: |
+          APP_PATH="${{ steps.locate.outputs.app_path }}"
+          SIGN_ID="Developer ID Application"
+          FLAGS="--force --timestamp --options runtime --sign"
+
+          # Sign Sparkle's nested binaries from inside out
+          FRAMEWORKS="$APP_PATH/Contents/Frameworks"
+          if [ -d "$FRAMEWORKS/Sparkle.framework" ]; then
+            echo "Re-signing Sparkle framework binaries..."
+
+            # XPC Services
+            find "$FRAMEWORKS/Sparkle.framework" -path "*/XPCServices/*/MacOS/*" -type f | while read bin; do
+              echo "  Signing: $bin"
+              codesign $FLAGS "$SIGN_ID" "$bin"
+            done
+
+            # Sign each XPC bundle
+            find "$FRAMEWORKS/Sparkle.framework" -name "*.xpc" -type d | while read xpc; do
+              echo "  Signing: $xpc"
+              codesign $FLAGS "$SIGN_ID" "$xpc"
+            done
+
+            # Updater.app and Autoupdate
+            find "$FRAMEWORKS/Sparkle.framework" -name "Autoupdate" -type f | while read bin; do
+              echo "  Signing: $bin"
+              codesign $FLAGS "$SIGN_ID" "$bin"
+            done
+            find "$FRAMEWORKS/Sparkle.framework" -path "*/Updater.app/Contents/MacOS/Updater" -type f | while read bin; do
+              echo "  Signing: $bin"
+              codesign $FLAGS "$SIGN_ID" "$bin"
+            done
+            find "$FRAMEWORKS/Sparkle.framework" -name "Updater.app" -type d | while read app; do
+              echo "  Signing: $app"
+              codesign $FLAGS "$SIGN_ID" "$app"
+            done
+
+            # Sign the framework itself
+            codesign $FLAGS "$SIGN_ID" "$FRAMEWORKS/Sparkle.framework"
+            echo "✅ Sparkle framework re-signed"
+          fi
+
+          # Re-sign the main app (picks up re-signed frameworks)
+          codesign $FLAGS "$SIGN_ID" "$APP_PATH"
           codesign -dvv "$APP_PATH"
-          codesign --verify --strict "$APP_PATH"
-          echo "✅ Signed"
+          codesign --verify --strict --deep "$APP_PATH"
+          echo "✅ App signed and verified"
 
       # ── Notarize the .app, then staple it ────────────────────────
       - name: Set up App Store Connect API key
