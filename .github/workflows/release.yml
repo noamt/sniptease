@@ -280,17 +280,21 @@ jobs:
           LENGTH="${{ steps.sparkle_sign.outputs.length }}"
           PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S %z")
 
-          ITEM="    <item>
-              <title>Version ${VERSION}</title>
-              <pubDate>${PUB_DATE}</pubDate>
-              <sparkle:version>${BUILD_NUMBER}</sparkle:version>
-              <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
-              <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-              <enclosure url=\"${DMG_URL}\" type=\"application/octet-stream\" sparkle:edSignature=\"${ED_SIGNATURE}\" length=\"${LENGTH}\" />
-            </item>"
-
-          # Insert the new item into the appcast (before </channel>)
-          sed -i '' "s|</channel>|${ITEM}\n  </channel>|" docs/appcast.xml
+          python3 -c "
+import sys
+item = '''    <item>
+      <title>Version $VERSION</title>
+      <pubDate>$PUB_DATE</pubDate>
+      <sparkle:version>$BUILD_NUMBER</sparkle:version>
+      <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url=\"$DMG_URL\" type=\"application/octet-stream\" sparkle:edSignature=\"$ED_SIGNATURE\" length=\"$LENGTH\" />
+    </item>'''
+path = 'docs/appcast.xml'
+xml = open(path).read()
+xml = xml.replace('</channel>', item + '\n  </channel>')
+open(path, 'w').write(xml)
+          "
 
           echo "✅ Appcast updated with ${VERSION}"
           cat docs/appcast.xml
