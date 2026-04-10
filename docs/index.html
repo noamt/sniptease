@@ -218,16 +218,13 @@
     }
 
     .hero-screenshot {
-      margin-top: 56px;
+      display: block;
+      margin: 56px auto 0;
       border-radius: 12px;
       border: 1px solid var(--border);
-      background: var(--bg-warm);
-      padding: 40px;
-      color: var(--text-secondary);
-      font-size: 0.9rem;
       max-width: 720px;
-      margin-left: auto;
-      margin-right: auto;
+      width: 100%;
+      height: auto;
     }
 
     /* ── Presets table ────────────────────────────── */
@@ -449,9 +446,7 @@
           View source
         </a>
       </div>
-      <div class="hero-screenshot">
-        Screenshot coming soon &mdash; drop a .png at <code>docs/screenshot.png</code> and replace this block.
-      </div>
+      <img src="screenshot.png" alt="SnipTease capturing a region with safe-zone guides" class="hero-screenshot" width="1200" height="675">
     </div>
   </section>
 
