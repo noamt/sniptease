@@ -49,14 +49,22 @@ struct SnipTeaseApp: App {
 // for reliable menu bar icon rendering.
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate {
 
     let appState = AppState()
     var overlayController: OverlayController?
     var hotkeyManager: HotkeyManager?
     private var onboardingController: OnboardingWindowController?
     private var splash: SplashOverlay?
-    let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    lazy var updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: self)
+
+    // Sparkle: support gentle reminders for background/menu bar apps
+    var supportsGentleScheduledUpdateReminders: Bool { true }
+
+    func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
+        // Bring the app to front so the user notices the update dialog
+        NSApp.activate(ignoringOtherApps: true)
+    }
 
     // ── Menu bar ───────────────────────────────────────────────
     private var statusItem: NSStatusItem!
@@ -233,19 +241,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-// MARK: - Menu Bar Actions (static, no delegate cast required)
+// MARK: - Menu Bar Actions
 
+@MainActor
 enum MenuBarActions {
 
     static func checkForUpdates() {
-        // Sparkle's updater controller lives on AppDelegate; this is the one
-        // action that genuinely needs it. Use a direct class-level reference
-        // instead of the fragile optional-chain cast.
-        guard let delegate = NSApp.delegate as? AppDelegate else {
-            print("SnipTease: ⚠️ Could not resolve AppDelegate for update check")
-            return
-        }
-        delegate.updaterController.checkForUpdates(nil)
+        guard let delegate = NSApp.delegate as? AppDelegate else { return }
+        delegate.checkForUpdates()
     }
 
     static func showAbout() {
@@ -455,7 +458,7 @@ struct MenuBarView: View {
             // ── Quit ──────────────────────────────────────────────
             Button(action: { NSApp.terminate(nil) }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "arrow.right.from.line")
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .frame(width: 20)
