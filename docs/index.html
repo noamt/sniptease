@@ -124,11 +124,6 @@
       color: var(--text);
     }
 
-    .nav-brand svg {
-      width: 24px;
-      height: 24px;
-    }
-
     .nav-brand span {
       font-family: 'DM Sans', sans-serif;
       font-weight: 600;
@@ -235,108 +230,6 @@
       margin-right: auto;
     }
 
-    .version-tag {
-      display: inline-block;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      background: var(--bg-warm);
-      border: 1px solid var(--border);
-      padding: 4px 10px;
-      border-radius: 20px;
-      margin-bottom: 20px;
-    }
-
-    /* ── How it works ────────────────────────────── */
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 40px;
-      margin-top: 40px;
-    }
-
-    .step {
-      text-align: center;
-    }
-
-    .step-number {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--accent-light);
-      color: var(--accent);
-      font-family: 'Instrument Serif', serif;
-      font-size: 1.2rem;
-      margin-bottom: 16px;
-    }
-
-    .step h3 {
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 600;
-      font-size: 1rem;
-    }
-
-    .step p {
-      font-size: 0.9rem;
-      margin: 0 auto;
-      max-width: 260px;
-    }
-
-    .kbd {
-      display: inline-block;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.8em;
-      padding: 2px 7px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      background: #fff;
-      box-shadow: 0 1px 0 var(--border);
-      white-space: nowrap;
-    }
-
-    /* ── Features ─────────────────────────────────── */
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 32px;
-      margin-top: 40px;
-    }
-
-    .feature {
-      padding: 28px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: #fff;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .feature:hover {
-      border-color: #ccc;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-    }
-
-    .feature-icon {
-      font-size: 1.4rem;
-      margin-bottom: 12px;
-    }
-
-    .feature h3 {
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 600;
-      font-size: 1rem;
-      margin-bottom: 6px;
-    }
-
-    .feature p {
-      font-size: 0.9rem;
-      margin: 0;
-    }
-
     /* ── Presets table ────────────────────────────── */
 
     .presets-table {
@@ -441,19 +334,6 @@
       margin: 0;
     }
 
-    /* ── Build from source ────────────────────────── */
-
-    .build-section .requirements {
-      display: flex;
-      gap: 24px;
-      margin: 16px 0 24px;
-    }
-
-    .requirements span {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-    }
-
     /* ── Footer ───────────────────────────────────── */
 
     footer {
@@ -497,21 +377,11 @@
 
     .hero p { animation-delay: 0.08s; }
     .hero-actions { animation-delay: 0.16s; }
-    .hero-screenshot { animation-delay: 0.28s; }
 
     /* ── Responsive ───────────────────────────────── */
 
     @media (max-width: 700px) {
       section { padding: 56px 0; }
-
-      .steps {
-        grid-template-columns: 1fr;
-        gap: 28px;
-      }
-
-      .features-grid {
-        grid-template-columns: 1fr;
-      }
 
       .nav-links {
         gap: 16px;
@@ -532,10 +402,6 @@
         flex-direction: column;
       }
 
-      .build-section .requirements {
-        flex-direction: column;
-        gap: 8px;
-      }
     }
 
     /* ── Focus states ─────────────────────────────── */
@@ -552,15 +418,10 @@
   <nav>
     <div class="container">
       <a href="#" class="nav-brand">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <path d="M16 10a4 4 0 01-8 0"/>
-        </svg>
+        <img src="icon.png" alt="SnipTease" width="24" height="24" style="border-radius: 5px;">
         <span>SnipTease</span>
       </a>
       <ul class="nav-links">
-        <li><a href="#features">Features</a></li>
         <li><a href="#presets">Presets</a></li>
         <li><a href="#mcp">MCP</a></li>
         <li><a href="https://github.com/noamt/sniptease">GitHub</a></li>
@@ -571,9 +432,8 @@
   <!-- Hero -->
   <section class="hero">
     <div class="container">
-      <span class="version-tag">v1.0.1 &mdash; signed &amp; notarized</span>
       <h1>Frame your screenshots<br>for every platform</h1>
-      <p>A macOS menu bar utility. Hit a hotkey, pick a preset, capture a region that's already shaped for where you're posting it.</p>
+      <p>Pick a platform preset, capture a region, get a screenshot that's already the right shape. No more cropping in Figma.</p>
       <div class="hero-actions">
         <a href="https://github.com/noamt/sniptease/releases/latest" class="btn-primary">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v8m0 0l-3-3m3 3l3-3M3 13h10"/></svg>
@@ -585,61 +445,6 @@
       </div>
       <div class="hero-screenshot">
         Screenshot coming soon &mdash; drop a .png at <code>docs/screenshot.png</code> and replace this block.
-      </div>
-    </div>
-  </section>
-
-  <!-- How it works -->
-  <section>
-    <div class="container">
-      <h2>Three steps. No setup.</h2>
-      <p>SnipTease lives in your menu bar. It's always there when you need it.</p>
-      <div class="steps">
-        <div class="step">
-          <div class="step-number">1</div>
-          <h3>Hit the hotkey</h3>
-          <p>Press <span class="kbd">&#x2303;&#x21E7;S</span> from any app to open the capture overlay.</p>
-        </div>
-        <div class="step">
-          <div class="step-number">2</div>
-          <h3>Pick a preset</h3>
-          <p>Tab through LinkedIn, X, Instagram, OG &mdash; or click one in the menu bar dropdown.</p>
-        </div>
-        <div class="step">
-          <div class="step-number">3</div>
-          <h3>Drag &amp; capture</h3>
-          <p>Select a region. The framed screenshot lands on your Desktop and clipboard, ready to paste.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features -->
-  <section id="features">
-    <div class="container">
-      <h2>What you get</h2>
-      <p>Native, tiny, no Electron. Pure Swift and SwiftUI using ScreenCaptureKit.</p>
-      <div class="features-grid">
-        <div class="feature">
-          <div class="feature-icon">&#x2328;</div>
-          <h3>Global hotkey</h3>
-          <p><span class="kbd">&#x2303;&#x21E7;S</span> from any app. No need to switch windows or open a menu first.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">&#x25A3;</div>
-          <h3>Safe-zone guides</h3>
-          <p>Optional margin overlay shows each platform's content-safe area so nothing important gets clipped.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">&#x1F5BC;</div>
-          <h3>Retina-correct export</h3>
-          <p>Captured at your display's native resolution, then Lanczos-downscaled to the exact export size the platform wants.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">&#x1F916;</div>
-          <h3>MCP server for agents</h3>
-          <p>Run with <code>--mcp</code> and your AI agent can take framed screenshots using natural language descriptions.</p>
-        </div>
       </div>
     </div>
   </section>
@@ -711,25 +516,6 @@
     </div>
   </section>
 
-  <!-- Build from source -->
-  <section id="build" class="build-section">
-    <div class="container">
-      <h2>Build from source</h2>
-      <div class="requirements">
-        <span>macOS 14+</span>
-        <span>Xcode 15.4+</span>
-      </div>
-      <div class="code-block">git clone https://github.com/noamt/sniptease.git
-cd sniptease
-open SnipTease.xcodeproj
-<span class="comment"># Press Cmd+R, or from the command line:</span>
-xcodebuild -project SnipTease.xcodeproj \
-  -scheme SnipTease -configuration Release \
-  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
-  CODE_SIGNING_ALLOWED=NO build</div>
-      <p style="margin-top: 16px; font-size: 0.85rem;">Building from source produces an unsigned binary. On first launch, right-click and choose Open, or run <code>xattr -dr com.apple.quarantine SnipTease.app</code>.</p>
-    </div>
-  </section>
 
   <!-- Footer -->
   <footer>
