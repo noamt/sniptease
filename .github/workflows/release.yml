@@ -54,7 +54,35 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
           echo "✅ Certificate imported"
 
-      # ── Set up App Store Connect API key ─────────────────────────
+      # ── Build and sign ───────────────────────────────────────────
+      - name: Build Release (signed)
+        run: |
+          xcodebuild \
+            -project SnipTease.xcodeproj \
+            -scheme SnipTease \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime" \
+            build
+
+      - name: Locate .app
+        id: locate
+        run: |
+          APP_PATH="build/Build/Products/Release/SnipTease.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "SnipTease.app not found at $APP_PATH"
+            find build -name "SnipTease.app" -type d
+            exit 1
+          fi
+          echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          codesign -dvv "$APP_PATH"
+          codesign --verify --strict "$APP_PATH"
+          echo "✅ Signed"
+
+      # ── Notarize the .app, then staple it ────────────────────────
       - name: Set up App Store Connect API key
         env:
           API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
@@ -63,68 +91,49 @@ jobs:
           mkdir -p ~/private_keys
           echo "$API_KEY_P8_BASE64" | base64 --decode \
             > ~/private_keys/AuthKey_${API_KEY_ID}.p8
-          echo "✅ API key ready"
 
-      # ── Archive ──────────────────────────────────────────────────
-      - name: Archive
-        run: |
-          xcodebuild archive \
-            -project SnipTease.xcodeproj \
-            -scheme SnipTease \
-            -configuration Release \
-            -archivePath build/SnipTease.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Developer ID Application" \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime"
-          echo "✅ Archive created"
-
-      # ── Export (notarize + staple via Xcode) ─────────────────────
-      - name: Write export options plist
+      - name: Notarize .app
         env:
           API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
-          cat > build/ExportOptions.plist << PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>developer-id</string>
-            <key>teamID</key>
-            <string>${TEAM_ID}</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>signingCertificate</key>
-            <string>Developer ID Application</string>
-          </dict>
-          </plist>
-          PLIST
+          APP_PATH="${{ steps.locate.outputs.app_path }}"
 
-      - name: Export, notarize, and staple
-        env:
-          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-        run: |
-          xcodebuild -exportArchive \
-            -archivePath build/SnipTease.xcarchive \
-            -exportOptionsPlist build/ExportOptions.plist \
-            -exportPath build/export \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
-            -authenticationKeyID "$API_KEY_ID" \
-            -authenticationKeyIssuerID "$API_ISSUER_ID"
-          echo "✅ Exported, notarized, and stapled"
+          # Zip the .app for notarytool (it requires zip or dmg)
+          ditto -c -k --keepParent "$APP_PATH" SnipTease.zip
+          echo "Submitting SnipTease.zip ($(du -h SnipTease.zip | cut -f1)) for notarization..."
 
-      - name: Verify export
+          xcrun notarytool submit SnipTease.zip \
+            --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+            --key-id "$API_KEY_ID" \
+            --issuer "$API_ISSUER_ID" \
+            --wait \
+            --timeout 15m
+
+          rm SnipTease.zip
+          echo "✅ Notarization complete"
+
+      - name: Staple .app
         run: |
-          APP_PATH="build/export/SnipTease.app"
-          codesign -dvv "$APP_PATH"
-          codesign --verify --strict "$APP_PATH"
-          # Check staple
-          xcrun stapler validate "$APP_PATH" || echo "⚠️ Staple not attached to .app (Gatekeeper still works online)"
-          echo "app_path=$APP_PATH" >> "$GITHUB_ENV"
+          APP_PATH="${{ steps.locate.outputs.app_path }}"
+
+          # Staple the .app (not a DMG — .app stapling is reliable)
+          for attempt in 1 2 3 4 5; do
+            echo "Staple attempt $attempt..."
+            if xcrun stapler staple "$APP_PATH"; then
+              echo "✅ Stapled on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "❌ Stapling failed after 5 attempts"
+              exit 1
+            fi
+            echo "Waiting 15s for ticket propagation..."
+            sleep 15
+          done
+
+          xcrun stapler validate "$APP_PATH"
+          echo "✅ Ticket validated"
 
       # ── Package .dmg ─────────────────────────────────────────────
       - name: Install create-dmg
@@ -137,7 +146,7 @@ jobs:
           DMG_NAME="SnipTease-${VERSION}.dmg"
           STAGING="$(mktemp -d)/dmg-staging"
           mkdir -p "$STAGING"
-          cp -R "${{ env.app_path }}" "$STAGING/"
+          cp -R "${{ steps.locate.outputs.app_path }}" "$STAGING/"
 
           create-dmg \
             --volname "SnipTease ${VERSION}" \
