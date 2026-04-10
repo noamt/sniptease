@@ -233,6 +233,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+// MARK: - Menu Bar Actions (static, no delegate cast required)
+
+enum MenuBarActions {
+
+    static func checkForUpdates() {
+        // Sparkle's updater controller lives on AppDelegate; this is the one
+        // action that genuinely needs it. Use a direct class-level reference
+        // instead of the fragile optional-chain cast.
+        guard let delegate = NSApp.delegate as? AppDelegate else {
+            print("SnipTease: ⚠️ Could not resolve AppDelegate for update check")
+            return
+        }
+        delegate.updaterController.checkForUpdates(nil)
+    }
+
+    static func showAbout() {
+        let credits = NSMutableAttributedString(
+            string: "A native macOS menu bar utility for framing screenshots for social media.\n\n",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .foregroundColor: NSColor.labelColor
+            ]
+        )
+        let linkText = NSAttributedString(
+            string: SnipTeaseInfo.repoURL.absoluteString,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .link: SnipTeaseInfo.repoURL,
+                .foregroundColor: NSColor.linkColor
+            ]
+        )
+        credits.append(linkText)
+
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationName: "SnipTease",
+            .applicationVersion: Bundle.main.appVersion,
+            .version: Bundle.main.buildNumber,
+            .credits: credits
+        ])
+    }
+
+    static func openGitHub() {
+        NSWorkspace.shared.open(SnipTeaseInfo.repoURL)
+    }
+
+    static func openReportIssue() {
+        NSWorkspace.shared.open(SnipTeaseInfo.issuesURL)
+    }
+}
+
 // MARK: - Menu Bar Dropdown View
 // Raycast-inspired design: dark vibrancy, hover states, accent gradients,
 // tight spacing rhythm, keyboard-shortcut badges, subtle animations.
@@ -368,7 +419,7 @@ struct MenuBarView: View {
                     icon: "arrow.triangle.2.circlepath",
                     title: "Check for Updates\u{2026}",
                     action: {
-                        (NSApp.delegate as? AppDelegate)?.checkForUpdates()
+                        MenuBarActions.checkForUpdates()
                     }
                 )
                 footerRow(
@@ -376,7 +427,7 @@ struct MenuBarView: View {
                     icon: "info.circle",
                     title: "About SnipTease",
                     action: {
-                        (NSApp.delegate as? AppDelegate)?.showAboutPanel()
+                        MenuBarActions.showAbout()
                     }
                 )
                 footerRow(
@@ -384,7 +435,7 @@ struct MenuBarView: View {
                     icon: "chevron.left.forwardslash.chevron.right",
                     title: "SnipTease on GitHub",
                     action: {
-                        (NSApp.delegate as? AppDelegate)?.openGitHub()
+                        MenuBarActions.openGitHub()
                     }
                 )
                 footerRow(
@@ -392,7 +443,7 @@ struct MenuBarView: View {
                     icon: "exclamationmark.bubble",
                     title: "Report an Issue",
                     action: {
-                        (NSApp.delegate as? AppDelegate)?.openReportIssue()
+                        MenuBarActions.openReportIssue()
                     }
                 )
             }
@@ -511,26 +562,26 @@ struct MenuBarView: View {
         action: @escaping () -> Void
     ) -> some View {
         let isHovered = hoveredFooterID == id
-        return HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
-                .frame(width: 20)
-            Text(title)
-                .font(.system(size: 12.5))
-                .foregroundColor(.primary.opacity(0.85))
-            Spacer()
+        return Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .frame(width: 20)
+                Text(title)
+                    .font(.system(size: 12.5))
+                    .foregroundColor(.primary.opacity(0.85))
+                Spacer()
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
+            )
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
-        )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            action()
-        }
+        .buttonStyle(.plain)
         .onHover { hovering in
             withAnimation(.easeOut(duration: 0.1)) {
                 hoveredFooterID = hovering ? id : nil
