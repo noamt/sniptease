@@ -153,8 +153,21 @@ jobs:
 
       - name: Staple notarization ticket
         run: |
-          xcrun stapler staple "${{ steps.dmg.outputs.dmg_path }}"
-          echo "✅ Stapled"
+          # Apple's CDN can take a moment to propagate the ticket after
+          # notarytool returns success. Retry stapling a few times.
+          for attempt in 1 2 3 4 5; do
+            echo "Staple attempt $attempt..."
+            if xcrun stapler staple "${{ steps.dmg.outputs.dmg_path }}"; then
+              echo "✅ Stapled on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "❌ Stapling failed after 5 attempts"
+              exit 1
+            fi
+            echo "Ticket not yet available, waiting 15s..."
+            sleep 15
+          done
 
           # Final validation
           spctl --assess --type open --context context:primary-signature \
