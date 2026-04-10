@@ -29,5 +29,13 @@
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <enclosure url="https://github.com/noamt/sniptease/releases/download/v1.1.2/SnipTease-1.1.2.dmg" type="application/octet-stream" sparkle:edSignature="s23NuYhhFK46E4mvIBD3yY0uGsb3XaCcVraeONIEUEee/9q6dokM6ufA6C22LcuAgFgwJv7tp08+k3H7PgfEBg==" length="1457720" />
     </item>
+      <item>
+      <title>Version 1.1.3</title>
+      <pubDate>Fri, 10 Apr 2026 17:06:25 +0000</pubDate>
+      <sparkle:version>5</sparkle:version>
+      <sparkle:shortVersionString>1.1.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/noamt/sniptease/releases/download/v1.1.3/SnipTease-1.1.3.dmg" type="application/octet-stream" sparkle:edSignature="RRdOzYXFeuS43Z8LWBG+snoATafF+JAbmfy+InyEIIezCsFruExChK2xJlPkzcEjxmQkACaWSS06V2OoQXv2Cg==" length="1459871" />
+    </item>
   </channel>
 </rss>
