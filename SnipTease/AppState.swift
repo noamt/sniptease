@@ -38,6 +38,9 @@ final class AppState: ObservableObject {
     // Most recent captured image
     @Published var lastCapture: NSImage? = nil
 
+    /// The screen the overlay is currently displayed on (for multi-monitor capture).
+    var captureScreen: NSScreen?
+
     // Status message shown briefly in the menu
     @Published var statusMessage: String? = nil
 

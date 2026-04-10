@@ -97,6 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if isActive {
                     self.popover.performClose(nil)
                     self.overlayController?.show()
+                    self.appState.captureScreen = self.overlayController?.activeScreen
                 } else {
                     self.overlayController?.dismiss()
                 }

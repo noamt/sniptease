@@ -25,26 +25,26 @@ final class CaptureService {
         .highQualityDownsample: true
     ])
 
-    static func capture(rect: CGRect, preset: PlatformPreset) async {
+    static func capture(rect: CGRect, preset: PlatformPreset, screen: NSScreen? = nil) async {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(
                 false, onScreenWindowsOnly: true
             )
 
-            guard let display = content.displays.first else {
-                print("SnipTease: No display found"); return
-            }
-            guard let screen = NSScreen.main else {
-                print("SnipTease: No main screen"); return
+            let targetScreen = screen ?? NSScreen.main ?? NSScreen.screens.first
+            guard let targetScreen else {
+                print("SnipTease: No screen available"); return
             }
 
-            // The backing scale factor is 2.0 on Retina displays.
-            // SCStreamConfiguration.sourceRect is in POINTS (display coordinates).
-            // config.width/height are in PIXELS. To capture at full Retina
-            // resolution we must set output dimensions = points × backingScaleFactor.
-            // Previously we used SCDisplay.width (which is also in points), so
-            // scaleX ≈ 1 and we captured at 1× — half the native resolution.
-            let backingScale = screen.backingScaleFactor   // 2.0 on Retina
+            // Match NSScreen to SCDisplay via CGDirectDisplayID.
+            let screenDisplayID = targetScreen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+            let display = content.displays.first(where: { $0.displayID == screenDisplayID })
+                ?? content.displays.first
+            guard let display else {
+                print("SnipTease: No display found"); return
+            }
+
+            let backingScale = targetScreen.backingScaleFactor   // 2.0 on Retina
 
             // Snap sourceRect to pixel boundaries in POINT space.
             // On a 2× display, each pixel = 0.5pt, so we round to 0.5pt steps.

@@ -9,6 +9,8 @@ final class OverlayController {
 
     private var panel: OverlayPanel?
     private let appState: AppState
+    /// The screen the overlay is currently displayed on.
+    private(set) var activeScreen: NSScreen?
 
     init(appState: AppState) {
         self.appState = appState
@@ -16,7 +18,14 @@ final class OverlayController {
 
     func show() {
         guard panel == nil else { return }
-        guard let screen = NSScreen.main else { return }
+        // Use the screen under the mouse cursor so the overlay appears
+        // on whichever display the user is interacting with.
+        let mouseLocation = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first
+        guard let screen else { return }
+        activeScreen = screen
 
         let p = OverlayPanel(
             contentRect: screen.frame,
@@ -58,6 +67,7 @@ final class OverlayController {
         }, completionHandler: { [weak self] in
             p.orderOut(nil)
             self?.panel = nil
+            self?.activeScreen = nil
         })
     }
 }

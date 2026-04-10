@@ -720,12 +720,13 @@ struct OverlayContentView: View {
     private func performCapture() {
         let rect = guideRect
         let preset = appState.selectedPreset
+        let screen = appState.captureScreen
         appState.dismissOverlay()
 
         Task {
             // Wait for the overlay panel to fully fade out before capturing
             try? await Task.sleep(for: .milliseconds(300))
-            await CaptureService.capture(rect: rect, preset: preset)
+            await CaptureService.capture(rect: rect, preset: preset, screen: screen)
             appState.flashStatus("Screenshot saved!")
         }
     }
