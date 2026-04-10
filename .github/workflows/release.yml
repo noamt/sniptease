@@ -213,7 +213,7 @@ jobs:
         id: dmg
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          DMG_NAME="SnipTease-${VERSION}.dmg"
+          DMG_NAME="SnipTease.dmg"
           STAGING="$(mktemp -d)/dmg-staging"
           mkdir -p "$STAGING"
           cp -R "${{ steps.locate.outputs.app_path }}" "$STAGING/"
