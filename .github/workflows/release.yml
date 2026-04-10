@@ -103,15 +103,39 @@ jobs:
           ditto -c -k --keepParent "$APP_PATH" SnipTease.zip
           echo "Submitting SnipTease.zip ($(du -h SnipTease.zip | cut -f1)) for notarization..."
 
-          xcrun notarytool submit SnipTease.zip \
+          # Submit and capture the submission ID
+          SUBMIT_OUTPUT=$(xcrun notarytool submit SnipTease.zip \
             --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
             --key-id "$API_KEY_ID" \
             --issuer "$API_ISSUER_ID" \
             --wait \
-            --timeout 15m
+            --timeout 15m 2>&1) || true
+          echo "$SUBMIT_OUTPUT"
+          SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
 
           rm SnipTease.zip
-          echo "✅ Notarization complete"
+
+          # Check the result — notarytool exits 0 even on Invalid status
+          STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
+            --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+            --key-id "$API_KEY_ID" \
+            --issuer "$API_ISSUER_ID" \
+            --output-format json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','Unknown'))" 2>/dev/null || echo "Unknown")
+
+          echo "Notarization status: $STATUS"
+
+          if [ "$STATUS" = "Invalid" ] || [ "$STATUS" = "Rejected" ]; then
+            echo "❌ Notarization was rejected. Fetching log..."
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+              --key-id "$API_KEY_ID" \
+              --issuer "$API_ISSUER_ID" \
+              notarization_log.json 2>/dev/null || true
+            cat notarization_log.json 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "✅ Notarization accepted"
 
       - name: Staple .app
         run: |
