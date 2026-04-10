@@ -565,26 +565,26 @@ struct MenuBarView: View {
         action: @escaping () -> Void
     ) -> some View {
         let isHovered = hoveredFooterID == id
-        return Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .frame(width: 20)
-                Text(title)
-                    .font(.system(size: 12.5))
-                    .foregroundColor(.primary.opacity(0.85))
-                Spacer()
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
-            )
-            .contentShape(Rectangle())
+        return HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .frame(width: 20)
+            Text(title)
+                .font(.system(size: 12.5))
+                .foregroundColor(.primary.opacity(0.85))
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            action()
+        }
         .onHover { hovering in
             withAnimation(.easeOut(duration: 0.1)) {
                 hoveredFooterID = hovering ? id : nil
