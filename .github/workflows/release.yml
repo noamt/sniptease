@@ -10,8 +10,12 @@ permissions:
 
 jobs:
   release:
-    name: Build and release .dmg
+    name: Build, sign, notarize, and release .dmg
     runs-on: macos-15
+    env:
+      TEAM_ID: 3VH2QA272T
+      KEYCHAIN: build.keychain-db
+      KEYCHAIN_PASSWORD: ci-ephemeral
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,16 +26,52 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Build Release (unsigned)
+      # ── Import Developer ID certificate ──────────────────────────
+      - name: Import signing certificate
+        env:
+          P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Decode .p12
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          echo "$P12_BASE64" | base64 --decode > "$CERT_PATH"
+
+          # Create a temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+          # Import certificate
+          security import "$CERT_PATH" \
+            -P "$P12_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN"
+
+          # Allow codesign to access the keychain without UI prompt
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN"
+
+          # Add to search list so xcodebuild can find it
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+
+          echo "✅ Certificate imported into $KEYCHAIN"
+
+      # ── Build with code signing ──────────────────────────────────
+      - name: Build Release (signed)
         run: |
           xcodebuild \
             -project SnipTease.xcodeproj \
             -scheme SnipTease \
             -configuration Release \
             -derivedDataPath build \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime" \
             build
 
       - name: Locate built .app
@@ -44,8 +84,13 @@ jobs:
             exit 1
           fi
           echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
-          echo "Built: $APP_PATH"
 
+          # Verify signature
+          codesign -dvv "$APP_PATH"
+          codesign --verify --strict "$APP_PATH"
+          echo "✅ Code signature verified"
+
+      # ── Package .dmg ─────────────────────────────────────────────
       - name: Install create-dmg
         run: brew install create-dmg
 
@@ -67,16 +112,63 @@ jobs:
             --no-internet-enable \
             "$DMG_NAME" \
             "$STAGING" \
-            || ls -lah "$DMG_NAME"
+            || true
 
           if [ ! -f "$DMG_NAME" ]; then
             echo "DMG not produced"
             exit 1
           fi
 
+          # Sign the DMG itself
+          codesign --sign "Developer ID Application: Noam Y. Tenne ($TEAM_ID)" \
+            --timestamp "$DMG_NAME"
+
           echo "dmg_path=$DMG_NAME" >> "$GITHUB_OUTPUT"
           echo "Produced: $DMG_NAME ($(du -h "$DMG_NAME" | cut -f1))"
 
+      # ── Notarize ─────────────────────────────────────────────────
+      - name: Set up App Store Connect API key
+        env:
+          API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          # notarytool looks for keys in this well-known directory
+          mkdir -p ~/.private_keys
+          echo "$API_KEY_P8_BASE64" | base64 --decode \
+            > ~/.private_keys/AuthKey_${API_KEY_ID}.p8
+          echo "✅ API key written to ~/.private_keys/AuthKey_${API_KEY_ID}.p8"
+
+      - name: Submit for notarization
+        env:
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          echo "Submitting ${{ steps.dmg.outputs.dmg_path }} for notarization..."
+          xcrun notarytool submit "${{ steps.dmg.outputs.dmg_path }}" \
+            --key ~/.private_keys/AuthKey_${API_KEY_ID}.p8 \
+            --key-id "$API_KEY_ID" \
+            --issuer "$API_ISSUER_ID" \
+            --wait \
+            --timeout 15m
+          echo "✅ Notarization complete"
+
+      - name: Staple notarization ticket
+        run: |
+          xcrun stapler staple "${{ steps.dmg.outputs.dmg_path }}"
+          echo "✅ Stapled"
+
+          # Final validation
+          spctl --assess --type open --context context:primary-signature \
+            -v "${{ steps.dmg.outputs.dmg_path }}" 2>&1 || true
+          echo "DMG is signed, notarized, and stapled."
+
+      # ── Cleanup keychain ─────────────────────────────────────────
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain "$KEYCHAIN" 2>/dev/null || true
+
+      # ── Publish release ──────────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -92,9 +184,7 @@ jobs:
             ### Install
 
             1. Download the `.dmg` below.
-            2. Drag `SnipTease.app` to `/Applications`.
-            3. This build is **unsigned** — on first launch, right-click the app and choose **Open**, or run:
-               ```sh
-               xattr -dr com.apple.quarantine /Applications/SnipTease.app
-               ```
-            4. Grant Screen Recording and Accessibility permissions when asked.
+            2. Open it and drag `SnipTease.app` to `/Applications`.
+            3. Launch SnipTease. Grant Screen Recording and Accessibility permissions when asked.
+
+            This build is **signed and notarized** by Apple — it will open without Gatekeeper warnings.

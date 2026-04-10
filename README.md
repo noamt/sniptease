@@ -23,15 +23,9 @@ SnipTease lives in your menu bar. Press **⌃⇧S** from anywhere, pick a preset
 
 1. Grab the latest `.dmg` from the [Releases page](https://github.com/noamt/sniptease/releases).
 2. Open the `.dmg` and drag `SnipTease.app` to `/Applications`.
-3. Because the v1.0.0 build is unsigned, you'll need to right-click the app the first time and choose **Open**, or clear the quarantine bit:
+3. Launch it. The crop icon appears in your menu bar. Grant Screen Recording and Accessibility permissions when asked.
 
-   ```sh
-   xattr -dr com.apple.quarantine /Applications/SnipTease.app
-   ```
-
-4. Launch it. The crop icon appears in your menu bar. Grant Screen Recording and Accessibility permissions when asked.
-
-> Code signing and notarization are intentionally out of scope for v1.0.0.
+> Release builds are **signed and notarized** by Apple — they open without Gatekeeper warnings.
 
 ### Build from source
 
