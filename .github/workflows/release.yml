@@ -119,9 +119,8 @@ jobs:
             exit 1
           fi
 
-          # Sign the DMG itself
-          codesign --sign "Developer ID Application: Noam Y. Tenne ($TEAM_ID)" \
-            --timestamp "$DMG_NAME"
+          # Sign the DMG itself (use generic identity — keychain resolves it)
+          codesign --sign "Developer ID Application" --timestamp "$DMG_NAME"
 
           echo "dmg_path=$DMG_NAME" >> "$GITHUB_OUTPUT"
           echo "Produced: $DMG_NAME ($(du -h "$DMG_NAME" | cut -f1))"
