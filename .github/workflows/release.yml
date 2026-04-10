@@ -192,6 +192,70 @@ jobs:
           echo "dmg_path=$DMG_NAME" >> "$GITHUB_OUTPUT"
           echo "Produced: $DMG_NAME ($(du -h "$DMG_NAME" | cut -f1))"
 
+      # ── Sign DMG for Sparkle auto-updates ────────────────────────
+      - name: Sign DMG with Sparkle EdDSA key
+        id: sparkle_sign
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          DMG_PATH="${{ steps.dmg.outputs.dmg_path }}"
+
+          # Find sign_update from resolved SPM packages
+          SIGN_TOOL=$(find ~/Library/Developer/Xcode/DerivedData -path "*/sparkle/Sparkle/bin/sign_update" | head -1)
+          if [ -z "$SIGN_TOOL" ]; then
+            echo "sign_update not found, resolving packages..."
+            xcodebuild -resolvePackageDependencies -project SnipTease.xcodeproj -scheme SnipTease 2>/dev/null
+            SIGN_TOOL=$(find ~/Library/Developer/Xcode/DerivedData -path "*/sparkle/Sparkle/bin/sign_update" | head -1)
+          fi
+
+          if [ -z "$SIGN_TOOL" ]; then
+            echo "❌ Sparkle sign_update tool not found"
+            exit 1
+          fi
+
+          SIGNATURE=$("$SIGN_TOOL" "$DMG_PATH" --ed-key-file <(echo "$SPARKLE_PRIVATE_KEY") 2>&1)
+          echo "Sparkle signature: $SIGNATURE"
+
+          # Parse out edSignature and length
+          ED_SIGNATURE=$(echo "$SIGNATURE" | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2)
+          LENGTH=$(echo "$SIGNATURE" | grep -o 'length="[^"]*"' | cut -d'"' -f2)
+
+          echo "ed_signature=$ED_SIGNATURE" >> "$GITHUB_OUTPUT"
+          echo "length=$LENGTH" >> "$GITHUB_OUTPUT"
+          echo "✅ DMG signed for Sparkle"
+
+      - name: Update appcast.xml
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          DMG_NAME="${{ steps.dmg.outputs.dmg_path }}"
+          DMG_URL="https://github.com/noamt/sniptease/releases/download/${GITHUB_REF_NAME}/${DMG_NAME}"
+          ED_SIGNATURE="${{ steps.sparkle_sign.outputs.ed_signature }}"
+          LENGTH="${{ steps.sparkle_sign.outputs.length }}"
+          PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S %z")
+
+          ITEM="    <item>
+              <title>Version ${VERSION}</title>
+              <pubDate>${PUB_DATE}</pubDate>
+              <sparkle:version>${VERSION}</sparkle:version>
+              <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+              <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+              <enclosure url=\"${DMG_URL}\" type=\"application/octet-stream\" sparkle:edSignature=\"${ED_SIGNATURE}\" length=\"${LENGTH}\" />
+            </item>"
+
+          # Insert the new item into the appcast (before </channel>)
+          sed -i '' "s|</channel>|${ITEM}\n  </channel>|" docs/appcast.xml
+
+          echo "✅ Appcast updated with ${VERSION}"
+          cat docs/appcast.xml
+
+      - name: Push appcast.xml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/appcast.xml
+          git commit -m "Update appcast.xml for ${GITHUB_REF_NAME}"
+          git push origin HEAD:main
+
       # ── Cleanup keychain ─────────────────────────────────────────
       - name: Cleanup keychain
         if: always()
@@ -218,3 +282,5 @@ jobs:
             3. Launch SnipTease. Grant Screen Recording and Accessibility permissions when asked.
 
             This build is **signed and notarized** by Apple — it will open without Gatekeeper warnings.
+
+            This release supports **automatic updates** via Sparkle.

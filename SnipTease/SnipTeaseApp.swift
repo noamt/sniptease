@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import ScreenCaptureKit
+import Sparkle
 
 // MARK: - Constants
 
@@ -55,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var hotkeyManager: HotkeyManager?
     private var onboardingController: OnboardingWindowController?
     private var splash: SplashOverlay?
+    let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     // ── Menu bar ───────────────────────────────────────────────
     private var statusItem: NSStatusItem!
@@ -355,6 +357,14 @@ struct MenuBarView: View {
 
             // ── About / GitHub / Report Issue ─────────────────────
             VStack(alignment: .leading, spacing: 0) {
+                footerRow(
+                    id: "update",
+                    icon: "arrow.triangle.2.circlepath",
+                    title: "Check for Updates\u{2026}",
+                    action: {
+                        (NSApp.delegate as? AppDelegate)?.updaterController.checkForUpdates(nil)
+                    }
+                )
                 footerRow(
                     id: "about",
                     icon: "info.circle",

@@ -28,6 +28,12 @@
 	<string>AppIcon</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>MIT License · © 2026 Noam Y. Tenne</string>
+	<key>SUFeedURL</key>
+	<string>https://noamt.github.io/sniptease/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>MRX3vMcJeSytVfQWk6pkm4sOUhevcJFRUnjr6mzavZ8=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>SnipTease needs screen recording permission to capture screenshots with your chosen aspect ratio.</string>
 	<key>NSAccessibilityUsageDescription</key>
