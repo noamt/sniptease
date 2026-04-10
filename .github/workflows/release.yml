@@ -213,7 +213,7 @@ jobs:
         id: dmg
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          DMG_NAME="SnipTease.dmg"
+          DMG_NAME="SnipTease-${VERSION}.dmg"
           STAGING="$(mktemp -d)/dmg-staging"
           mkdir -p "$STAGING"
           cp -R "${{ steps.locate.outputs.app_path }}" "$STAGING/"
@@ -292,8 +292,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/appcast.xml
-          git commit -m "Update appcast.xml for ${GITHUB_REF_NAME}"
+          # Update download link in landing page
+          DMG_NAME="${{ steps.dmg.outputs.dmg_path }}"
+          DMG_URL="https://github.com/noamt/sniptease/releases/download/${GITHUB_REF_NAME}/${DMG_NAME}"
+          sed -i '' "s|https://github.com/noamt/sniptease/releases/[^\"]*\.dmg|${DMG_URL}|g" docs/index.html
+
+          git add docs/appcast.xml docs/index.html
+          git commit -m "Update appcast and download link for ${GITHUB_REF_NAME}"
           git push origin HEAD:main
 
       # ── Cleanup keychain ─────────────────────────────────────────
