@@ -156,7 +156,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: - About / GitHub / Report Issue
+    // MARK: - Menu Actions
+
+    @objc func checkForUpdates() {
+        popover?.performClose(nil)
+        updaterController.checkForUpdates(nil)
+    }
 
     @objc func showAboutPanel() {
         popover?.performClose(nil)
@@ -363,7 +368,7 @@ struct MenuBarView: View {
                     icon: "arrow.triangle.2.circlepath",
                     title: "Check for Updates\u{2026}",
                     action: {
-                        (NSApp.delegate as? AppDelegate)?.updaterController.checkForUpdates(nil)
+                        (NSApp.delegate as? AppDelegate)?.checkForUpdates()
                     }
                 )
                 footerRow(
@@ -506,25 +511,26 @@ struct MenuBarView: View {
         action: @escaping () -> Void
     ) -> some View {
         let isHovered = hoveredFooterID == id
-        return Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .frame(width: 20)
-                Text(title)
-                    .font(.system(size: 12.5))
-                    .foregroundColor(.primary.opacity(0.85))
-                Spacer()
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
-            )
+        return HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .frame(width: 20)
+            Text(title)
+                .font(.system(size: 12.5))
+                .foregroundColor(.primary.opacity(0.85))
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            action()
+        }
         .onHover { hovering in
             withAnimation(.easeOut(duration: 0.1)) {
                 hoveredFooterID = hovering ? id : nil
