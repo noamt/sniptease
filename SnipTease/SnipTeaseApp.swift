@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverD
 
     // ── Menu bar ───────────────────────────────────────────────
     private var statusItem: NSStatusItem!
-    private var popover: NSPopover!
+    var popover: NSPopover!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // ── 0. Check for MCP mode ─────────────────────────────
@@ -241,49 +241,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverD
     }
 }
 
-// MARK: - Menu Bar Actions
+// MARK: - ActionRowButton (NSViewRepresentable)
+// Wraps a real AppKit NSButton so actions fire reliably inside an NSPopover.
+// SwiftUI Button and onTapGesture both have timing issues with .transient/.semitransient popovers.
 
-@MainActor
-enum MenuBarActions {
+struct ActionRowButton: NSViewRepresentable {
+    let icon: String
+    let title: String
+    let selector: Selector
+    let badge: String?
 
-    static func checkForUpdates() {
-        guard let delegate = NSApp.delegate as? AppDelegate else { return }
-        delegate.checkForUpdates()
+    func makeNSView(context: Context) -> NSButton {
+        let button = NSButton()
+        button.bezelStyle = .recessed
+        button.isBordered = false
+        button.title = ""
+        button.target = NSApp.delegate
+        button.action = selector
+
+        // Build the attributed title with icon + text
+        // Leading spaces align with the 10pt horizontal padding of preset rows
+        let attachment = NSTextAttachment()
+        if let img = NSImage(systemSymbolName: icon, accessibilityDescription: nil) {
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .regular)
+            attachment.image = img.withSymbolConfiguration(config)
+        }
+        let attrStr = NSMutableAttributedString(string: "    ")  // indent to match preset rows
+        attrStr.append(NSAttributedString(attachment: attachment))
+        attrStr.append(NSAttributedString(string: "  \(title)", attributes: [
+            .font: NSFont.systemFont(ofSize: 12.5),
+            .foregroundColor: NSColor.secondaryLabelColor
+        ]))
+        if let badge {
+            attrStr.append(NSAttributedString(string: "   \(badge)", attributes: [
+                .font: NSFont.systemFont(ofSize: 10, weight: .medium),
+                .foregroundColor: NSColor.tertiaryLabelColor
+            ]))
+        }
+        button.attributedTitle = attrStr
+        button.alignment = .left
+        button.contentTintColor = .secondaryLabelColor
+
+        return button
     }
 
-    static func showAbout() {
-        let credits = NSMutableAttributedString(
-            string: "A native macOS menu bar utility for framing screenshots for social media.\n\n",
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 11),
-                .foregroundColor: NSColor.labelColor
-            ]
-        )
-        let linkText = NSAttributedString(
-            string: SnipTeaseInfo.repoURL.absoluteString,
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 11),
-                .link: SnipTeaseInfo.repoURL,
-                .foregroundColor: NSColor.linkColor
-            ]
-        )
-        credits.append(linkText)
+    func updateNSView(_ nsView: NSButton, context: Context) {}
+}
 
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "SnipTease",
-            .applicationVersion: Bundle.main.appVersion,
-            .version: Bundle.main.buildNumber,
-            .credits: credits
-        ])
-    }
+// MARK: - Quit
 
-    static func openGitHub() {
-        NSWorkspace.shared.open(SnipTeaseInfo.repoURL)
-    }
-
-    static func openReportIssue() {
-        NSWorkspace.shared.open(SnipTeaseInfo.issuesURL)
+extension AppDelegate {
+    @objc func quitApp() {
+        NSApp.terminate(nil)
     }
 }
 
@@ -295,8 +304,6 @@ struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
     @State private var hoveredPresetID: String?
     @State private var isHoveringCapture = false
-    @State private var isHoveringQuit = false
-    @State private var hoveredFooterID: String?
 
     // Raycast-style blue/indigo accent
     private let accent = Color(red: 0.38, green: 0.56, blue: 1.0)
@@ -415,40 +422,14 @@ struct MenuBarView: View {
 
             menuDivider
 
-            // ── About / GitHub / Report Issue ─────────────────────
+            // ── Footer actions ───────────────────────────────────
+            // Using NSApp.sendAction for reliability — SwiftUI Button
+            // and onTapGesture both have timing issues inside NSPopover.
             VStack(alignment: .leading, spacing: 0) {
-                footerRow(
-                    id: "update",
-                    icon: "arrow.triangle.2.circlepath",
-                    title: "Check for Updates\u{2026}",
-                    action: {
-                        MenuBarActions.checkForUpdates()
-                    }
-                )
-                footerRow(
-                    id: "about",
-                    icon: "info.circle",
-                    title: "About SnipTease",
-                    action: {
-                        MenuBarActions.showAbout()
-                    }
-                )
-                footerRow(
-                    id: "github",
-                    icon: "chevron.left.forwardslash.chevron.right",
-                    title: "SnipTease on GitHub",
-                    action: {
-                        MenuBarActions.openGitHub()
-                    }
-                )
-                footerRow(
-                    id: "issue",
-                    icon: "exclamationmark.bubble",
-                    title: "Report an Issue",
-                    action: {
-                        MenuBarActions.openReportIssue()
-                    }
-                )
+                actionRow(icon: "arrow.triangle.2.circlepath", title: "Check for Updates\u{2026}", selector: #selector(AppDelegate.checkForUpdates))
+                actionRow(icon: "info.circle", title: "About SnipTease", selector: #selector(AppDelegate.showAboutPanel))
+                actionRow(icon: "chevron.left.forwardslash.chevron.right", title: "SnipTease on GitHub", selector: #selector(AppDelegate.openGitHub))
+                actionRow(icon: "exclamationmark.bubble", title: "Report an Issue", selector: #selector(AppDelegate.openReportIssue))
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
@@ -456,29 +437,9 @@ struct MenuBarView: View {
             menuDivider
 
             // ── Quit ──────────────────────────────────────────────
-            Button(action: { NSApp.terminate(nil) }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                        .frame(width: 20)
-                    Text("Quit")
-                        .font(.system(size: 12.5))
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    kbdBadge("⌘Q")
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(isHoveringQuit ? Color.white.opacity(0.06) : Color.clear)
-                )
-            }
-            .buttonStyle(.plain)
-            .onHover { isHoveringQuit = $0 }
-            .padding(.horizontal, 6)
-            .padding(.bottom, 8)
+            actionRow(icon: "power", title: "Quit", selector: #selector(AppDelegate.quitApp), badge: "⌘Q")
+                .padding(.horizontal, 6)
+                .padding(.bottom, 8)
         }
         .frame(width: 280)
         .preferredColorScheme(.dark)
@@ -558,38 +519,11 @@ struct MenuBarView: View {
         }
     }
 
-    private func footerRow(
-        id: String,
-        icon: String,
-        title: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        let isHovered = hoveredFooterID == id
-        return HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
-                .frame(width: 20)
-            Text(title)
-                .font(.system(size: 12.5))
-                .foregroundColor(.primary.opacity(0.85))
-            Spacer()
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(isHovered ? Color.white.opacity(0.06) : Color.clear)
-        )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            action()
-        }
-        .onHover { hovering in
-            withAnimation(.easeOut(duration: 0.1)) {
-                hoveredFooterID = hovering ? id : nil
-            }
-        }
+    private func actionRow(icon: String, title: String, selector: Selector, badge: String? = nil) -> some View {
+        // Use an NSViewRepresentable wrapper with a real NSButton so the
+        // action fires reliably inside an NSPopover — no SwiftUI gesture timing issues.
+        ActionRowButton(icon: icon, title: title, selector: selector, badge: badge)
+            .frame(height: 28)
     }
 
     private func kbdBadge(_ text: String) -> some View {
