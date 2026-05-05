@@ -229,6 +229,33 @@ final class CaptureService {
         CGImageDestinationAddImage(dest, image, properties as CFDictionary)
 
         guard CGImageDestinationFinalize(dest) else { return nil }
-        return data as Data
+
+        // Modern macOS ImageIO writes a cICP chunk (ITU-T H.273 color coding points)
+        // alongside the iCCP chunk for P3 images. Finder's Quick Look doesn't understand
+        // cICP yet and falls back to a generic PNG placeholder. Strip it from the stream.
+        return stripPNGChunk("cICP", from: data as Data) ?? (data as Data)
+    }
+
+    // Rebuilds a PNG byte stream with all chunks of the given type removed.
+    private static func stripPNGChunk(_ chunkType: String, from data: Data) -> Data? {
+        let pngSignature = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+        guard data.prefix(8) == pngSignature else { return nil }
+
+        var result = Data(pngSignature)
+        var offset = 8
+        let typeBytes = Array(chunkType.utf8)
+
+        while offset + 8 <= data.count {
+            let length = Int(data[offset...offset+3].withUnsafeBytes { $0.load(as: UInt32.self).bigEndian })
+            let type = Array(data[offset+4..<offset+8])
+            let chunkEnd = offset + 8 + length + 4
+            guard chunkEnd <= data.count else { break }
+
+            if type != typeBytes {
+                result.append(data[offset..<chunkEnd])
+            }
+            offset = chunkEnd
+        }
+        return result
     }
 }
